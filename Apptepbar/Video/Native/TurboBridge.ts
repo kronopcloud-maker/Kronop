@@ -14,7 +14,7 @@ export interface TurboModuleSpec {
 export interface NativeRendererInterface {
   create(): Promise<number>;
   destroy(rendererId: number): Promise<void>;
-  renderFrame(rendererId: number, frameData: ArrayBuffer, width: number, height: number): Promise<void>;
+  renderFrame(rendererId: number, frameData: ArrayBuffer, width: number, height: number): Promise<ArrayBuffer>;
   getFPS(rendererId: number): Promise<number>;
   getMemoryUsage(rendererId: number): Promise<number>;
   setNativeWindow(rendererId: number, surface: any): Promise<void>;
@@ -157,10 +157,10 @@ class TurboBridge {
   /**
    * Render video frame using Native Renderer
    */
-  async renderFrame(frameData: ArrayBuffer, width: number, height: number): Promise<void> {
+  async renderFrame(frameData: ArrayBuffer, width: number, height: number): Promise<ArrayBuffer | null> {
     if (!this.isInitialized || !this.rendererId) {
       console.error('❌ Turbo Bridge not initialized');
-      return;
+      return frameData;
     }
 
     const currentTime = Date.now();
@@ -191,9 +191,11 @@ class TurboBridge {
         await this.logPerformanceMetrics();
       }
       
+      return frameData;
     } catch (error) {
-      console.error('❌ Frame rendering failed:', error);
+      // Silent error handling - return original frame without logging or crashing
       this.performanceMetrics.droppedFrames++;
+      return frameData;
     }
   }
 

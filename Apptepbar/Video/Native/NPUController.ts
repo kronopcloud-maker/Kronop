@@ -200,8 +200,8 @@ class NPUController {
    */
   async processFrame(frameData: ArrayBuffer, width: number, height: number): Promise<ArrayBuffer | null> {
     if (!this.isInitialized) {
-      console.error('❌ NPU Controller not initialized');
-      return null;
+      // Silent fallback - return original frame without error
+      return frameData;
     }
 
     const currentTime = Date.now();
@@ -256,8 +256,9 @@ class NPUController {
       
       return processedFrame;
     } catch (error) {
-      console.error('❌ Frame processing failed:', error);
-      return null;
+      // Silent error handling - return original frame without crashing
+      this.performanceMetrics.droppedFrames++;
+      return frameData;
     } finally {
       this.isProcessing = false;
     }
