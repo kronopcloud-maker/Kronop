@@ -1,4 +1,4 @@
-package com.kronop;
+// package com.kronop; // Commented out to resolve package mismatch
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -7,14 +7,14 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.bridge.ReactContextBaseJavaModule;
-import com.facebook.react.bridge.ReactMethod;
-import com.facebook.react.bridge.Promise;
-import com.facebook.react.bridge.WritableMap;
-import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.ReadableArray;
-import com.facebook.react.module.annotations.ReactModule;
+import com.kronop.react.bridge.ReactApplicationContext;
+import com.kronop.react.bridge.ReactContextBaseJavaModule;
+import com.kronop.react.bridge.ReactMethod;
+import com.kronop.react.bridge.Promise;
+import com.kronop.react.bridge.WritableMap;
+import com.kronop.react.bridge.Arguments;
+import com.kronop.react.bridge.ReadableArray;
+import com.kronop.react.module.annotations.ReactModule;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.ExecutorService;

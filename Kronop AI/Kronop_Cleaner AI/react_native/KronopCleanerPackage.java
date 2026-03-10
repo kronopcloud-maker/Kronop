@@ -1,11 +1,11 @@
-package com.kronop;
+// package com.kronop; // Commented out to resolve package mismatch
 
 import androidx.annotation.NonNull;
 
-import com.facebook.react.ReactPackage;
-import com.facebook.react.bridge.NativeModule;
-import com.facebook.react.bridge.ReactApplicationContext;
-import com.facebook.react.uimanager.ViewManager;
+import com.kronop.react.ReactPackage;
+import com.kronop.react.bridge.NativeModule;
+import com.kronop.react.bridge.ReactApplicationContext;
+import com.kronop.react.uimanager.ViewManager;
 
 import java.util.ArrayList;
 import java.util.Collections;

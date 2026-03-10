@@ -44,9 +44,14 @@ bool VideoStreamer::initialize(int width, int height, int channels) {
 }
 
 void VideoStreamer::shutdown() {
+    // First, stop streaming and join threads to prevent concurrent access
     stopStreaming();
     
-    // Clear all buffers
+    // Ensure streaming is completely stopped
+    streamingActive_ = false;
+    streamingPaused_ = false;
+    
+    // Clear all buffers under mutex protection to ensure thread safety
     {
         std::lock_guard<std::mutex> lock(inputMutex_);
         while (!inputBuffer_.empty()) {
@@ -70,6 +75,14 @@ void VideoStreamer::shutdown() {
             completedChunks_.pop();
         }
     }
+    
+    // Clear thread vectors
+    processingThreads_.clear();
+    chunkingThread_.reset();
+    monitoringThread_.reset();
+    
+    // Reset state
+    streamHealthy_ = false;
 }
 
 bool VideoStreamer::startStreaming() {

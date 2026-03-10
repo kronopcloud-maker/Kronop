@@ -26,6 +26,9 @@ ChunkManager::ChunkManager(const TileConfig& config)
     
     // Validate memory constraints for 4K
     validateMemoryConstraints();
+    
+    // Initialize memory pool for chunks (use half of max memory for pool)
+    memoryPool_ = std::make_unique<ChunkMemoryPool>(config.maxMemoryUsage / 2);
 }
 
 ChunkManager::~ChunkManager() {
@@ -130,7 +133,11 @@ bool ChunkManager::loadChunk(int chunkId, VideoChunk& chunk) {
     }
     
     // Simulate loading chunk data
-    chunk.data.resize(chunk.dataSize);
+    chunk.data = (uint8_t*)memoryPool_->allocateChunk(chunk.dataSize);
+    if (!chunk.data) {
+        std::cerr << "Failed to allocate memory for chunk " << chunkId << std::endl;
+        return false;
+    }
     
     // For demo, fill with test pattern
     for (size_t i = 0; i < chunk.dataSize; ++i) {
@@ -441,10 +448,9 @@ void ChunkManager::cleanupProcessedChunks() {
             }
             
             if (!stillNeeded) {
-                size_t chunkSize = chunk.data.size();
-                chunk.data.clear();
-                chunk.data.shrink_to_fit();
-                chunk.isLoaded = false;
+                size_t chunkSize = chunk.dataSize;
+                memoryPool_->deallocateChunk(chunk.data);
+                chunk.deallocate();
                 
                 updateMemoryUsage(-static_cast<int>(chunkSize));
             }
@@ -794,10 +800,9 @@ void ChunkManager::emergencyMemoryCleanup() {
     // Force cleanup of all processed chunks
     for (auto& chunk : chunks_) {
         if (chunk.isLoaded && chunk.isProcessed) {
-            size_t chunkSize = chunk.data.size();
-            chunk.data.clear();
-            chunk.data.shrink_to_fit();
-            chunk.isLoaded = false;
+            size_t chunkSize = chunk.dataSize;
+            memoryPool_->deallocateChunk(chunk.data);
+            chunk.deallocate();
             
             updateMemoryUsage(-static_cast<int>(chunkSize));
             
@@ -833,6 +838,84 @@ void ChunkManager::updateMemoryUsage(size_t delta) {
     
     // Monitor memory pressure
     monitorMemoryPressure();
+}
+
+// ChunkMemoryPool Implementation
+ChunkMemoryPool::ChunkMemoryPool(size_t poolSizeMB)
+    : totalPoolSize_(poolSizeMB * 1024 * 1024), availableMemory_(totalPoolSize_),
+      peakUsage_(0), allocationCount_(0) {
+    
+    // Create initial memory blocks (4MB blocks)
+    const size_t blockSize = 4 * 1024 * 1024;
+    int numBlocks = totalPoolSize_ / blockSize;
+    
+    memoryBlocks_.reserve(numBlocks);
+    for (int i = 0; i < numBlocks; ++i) {
+        void* ptr = std::malloc(blockSize);
+        if (ptr) {
+            memoryBlocks_.emplace_back(ptr, blockSize);
+        }
+    }
+}
+
+ChunkMemoryPool::~ChunkMemoryPool() {
+    for (auto& block : memoryBlocks_) {
+        if (block.ptr) {
+            std::free(block.ptr);
+        }
+    }
+}
+
+void* ChunkMemoryPool::allocateChunk(size_t size) {
+    std::lock_guard<std::mutex> lock(poolMutex_);
+    
+    if (size > availableMemory_) {
+        return nullptr;
+    }
+    
+    return allocateFromPool(size);
+}
+
+void ChunkMemoryPool::deallocateChunk(void* ptr) {
+    std::lock_guard<std::mutex> lock(poolMutex_);
+    
+    // Find the block and mark as free
+    for (auto& block : memoryBlocks_) {
+        if (block.ptr == ptr) {
+            block.inUse = false;
+            availableMemory_ += block.size;
+            return;
+        }
+    }
+}
+
+void* ChunkMemoryPool::allocateFromPool(size_t size) {
+    MemoryBlock block;
+    if (findFreeBlock(size, block)) {
+        block.inUse = true;
+        availableMemory_ -= block.size;
+        allocationCount_++;
+        
+        size_t currentUsage = totalPoolSize_ - availableMemory_;
+        if (currentUsage > peakUsage_) {
+            peakUsage_ = currentUsage;
+        }
+        
+        return block.ptr;
+    }
+    
+    return nullptr;
+}
+
+bool ChunkMemoryPool::findFreeBlock(size_t size, MemoryBlock& block) {
+    for (auto& memBlock : memoryBlocks_) {
+        if (!memBlock.inUse && memBlock.size >= size) {
+            block = memBlock;
+            return true;
+        }
+    }
+    
+    return false;
 }
 
 } // namespace kronop

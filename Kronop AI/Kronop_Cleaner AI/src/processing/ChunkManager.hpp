@@ -46,14 +46,24 @@ struct VideoChunk {
     int height;                     // Frame height
     int channels;                   // Number of channels
     size_t dataSize;                // Chunk data size in bytes
-    std::vector<uint8_t> data;     // Chunk data (compressed or raw)
+    uint8_t* data;                  // Chunk data (pooled memory)
     bool isLoaded;                  // Loading status
     bool isProcessed;              // Processing status
     
     VideoChunk(int id = 0, int start = 0, int end = 0)
         : chunkId(id), startFrame(start), endFrame(end),
           width(0), height(0), channels(3), dataSize(0),
-          isLoaded(false), isProcessed(false) {}
+          data(nullptr), isLoaded(false), isProcessed(false) {}
+    
+    // Cleanup method for pooled memory
+    void deallocate() {
+        if (data) {
+            // Will be handled by pool
+            data = nullptr;
+            dataSize = 0;
+            isLoaded = false;
+        }
+    }
 };
 
 /**
@@ -192,6 +202,9 @@ private:
     mutable std::mutex statsMutex_;
     ChunkStats stats_;
     
+    // Memory pool for chunks
+    std::unique_ptr<ChunkMemoryPool> memoryPool_;
+    
     // Internal methods
     void initializeChunks();
     void processChunkAsync(int chunkId);
@@ -294,6 +307,49 @@ public:
     size_t getAllocationCount() const;
     size_t getPeakUsage() const;
 
+private:
+    struct MemoryBlock {
+        void* ptr;
+        size_t size;
+        bool inUse;
+        
+        MemoryBlock(void* p = nullptr, size_t s = 0)
+            : ptr(p), size(s), inUse(false) {}
+    };
+    
+    std::vector<MemoryBlock> memoryBlocks_;
+    std::mutex poolMutex_;
+    size_t totalPoolSize_;
+    size_t availableMemory_;
+    size_t peakUsage_;
+    size_t allocationCount_;
+    
+    // Internal methods
+    void* allocateFromPool(size_t size);
+    void returnToPool(void* ptr, size_t size);
+    bool findFreeBlock(size_t size, MemoryBlock& block);
+};
+
+/**
+ * Chunk Memory Pool for Preventing Memory Fragmentation
+ * Manages memory allocation for video chunks to reduce heap fragmentation
+ */
+class ChunkMemoryPool {
+public:
+    explicit ChunkMemoryPool(size_t poolSizeMB);
+    ~ChunkMemoryPool();
+    
+    // Allocate memory for chunk data
+    void* allocateChunk(size_t size);
+    
+    // Deallocate chunk memory
+    void deallocateChunk(void* ptr);
+    
+    // Get pool statistics
+    size_t getAvailableMemory() const { return availableMemory_; }
+    size_t getPeakUsage() const { return peakUsage_; }
+    size_t getTotalAllocations() const { return allocationCount_; }
+    
 private:
     struct MemoryBlock {
         void* ptr;
