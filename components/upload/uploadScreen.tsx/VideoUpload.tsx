@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
     width: 34,
   },
   uploadArea: {
-    padding: theme.spacing.lg,
+    padding: 8,
   },
   uploadButton: {
     flex: 1,

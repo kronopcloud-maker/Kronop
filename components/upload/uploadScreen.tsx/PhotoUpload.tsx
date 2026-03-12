@@ -424,7 +424,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   uploadArea: {
-    padding: 16,
+    padding: 8,
   },
   uploadButtonsRow: {
     flexDirection: 'row',

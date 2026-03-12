@@ -360,7 +360,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   uploadArea: {
-    padding: 20,
+    padding: 8,
   },
   setupArea: {
     padding: 20,

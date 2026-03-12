@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   uploadArea: {
-    padding: 16,
+    padding: 8,
   },
   selectButton: {
     borderWidth: 2,

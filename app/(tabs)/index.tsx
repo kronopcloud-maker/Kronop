@@ -771,8 +771,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: theme.spacing.md,
-    paddingVertical: 0,
-    paddingTop: 20, // Minimum space - just for status bar
+    paddingVertical: 8,
+    paddingTop: 8, // Consistent with profile
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(255,255,255,0.1)',
   },

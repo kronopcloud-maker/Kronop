@@ -404,17 +404,11 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
   },
   subtitle: {
-    fontSize: theme.typography.fontSize.sm,
-    color: theme.colors.text.secondary,
-    marginTop: theme.spacing.xs,
-  },
   uploadArea: {
-    padding: theme.spacing.lg,
+    padding: 8,
   },
-  uploadButton: {
-    borderWidth: 2,
-    borderColor: theme.colors.border.secondary,
-    borderRadius: theme.borderRadius.lg,
+
+// ... (rest of the code remains the same)
     padding: theme.spacing.xxl,
     alignItems: 'center',
     backgroundColor: theme.colors.background.secondary,
