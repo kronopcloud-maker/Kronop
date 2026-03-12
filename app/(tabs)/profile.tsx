@@ -1,0 +1,837 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  Image,
+  TextInput,
+  Alert,
+  ActivityIndicator,
+  StatusBar,
+  Modal
+} from 'react-native';
+import { Ionicons, FontAwesome6 } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import * as ImagePicker from 'expo-image-picker';
+
+// Import upload components
+import StoryUpload from '../../components/upload/uploadScreen.tsx/StoryUpload.tsx';
+import PhotoUpload from '../../components/upload/uploadScreen.tsx/PhotoUpload.tsx';
+import ReelsUpload from '../../components/upload/uploadScreen.tsx/ReelsUpload.tsx';
+import VideoUpload from '../../components/upload/uploadScreen.tsx/VideoUpload.tsx';
+import LiveUpload from '../../components/upload/uploadScreen.tsx/LiveUpload.tsx';
+import SongUpload from '../../components/upload/uploadScreen.tsx/SongUpload.tsx';
+
+const mockUserData = {
+  displayName: 'Aman Angoriya',
+  username: 'johndoe',
+  bio: 'Passionate about creating amazing content and connecting with people around the world.',
+  avatar: 'https://picsum.photos/80/80?random=profile',
+  coverPhoto: 'https://picsum.photos/400/150?random=cover',
+  supporters: 0,
+  supporting: 0,
+  posts: 0,
+  badge: 'Creator'
+};
+
+export default function ProfileScreen() {
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const [userData, setUserData] = useState(mockUserData);
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('video');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState({
+    displayName: '',
+    username: '',
+    bio: '',
+    coverPhoto: ''
+  });
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [selectedUploadScreen, setSelectedUploadScreen] = useState<string | null>(null);
+
+  const tabs = [
+    { id: 'video', label: 'Video' },
+    { id: 'reels', label: 'Reels' },
+    { id: 'photo', label: 'Photo' },
+    { id: 'live', label: 'Live' },
+    { id: 'songs', label: 'Songs' },
+
+  ];
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const loadProfile = async () => {
+    setLoading(true);
+    try {
+      // const result = await profileService.fetchProfile(); // Removed - using mock data
+      // Simulate API call with mock data
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const result = { success: true, data: mockUserData };
+      
+      if (result.success && result.data) {
+        setUserData(result.data);
+        setEditData({
+          displayName: result.data.displayName || '',
+          username: result.data.username || '',
+          bio: result.data.bio || '',
+          coverPhoto: result.data.coverPhoto || ''
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditProfile = () => {
+    setEditData({
+      displayName: userData.displayName,
+      username: userData.username,
+      bio: userData.bio,
+      coverPhoto: userData.coverPhoto || ''
+    });
+    setIsEditing(true);
+  };
+
+  const handleSaveProfile = async () => {
+    setLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const result = { success: true };
+      
+      if (result.success) {
+        setUserData(prev => ({
+          ...prev,
+          ...editData
+        }));
+        setIsEditing(false);
+        Alert.alert('Success', 'Profile updated successfully');
+      } else {
+        Alert.alert('Error', 'Failed to update profile'); // Removed result.error since mock doesn't have it
+      }
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      Alert.alert('Error', 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShareProfile = () => {
+    Alert.alert('Share Profile', 'Profile share functionality coming soon!');
+  };
+
+  const handleSettingsPress = () => {
+    router.push('/settings' as any);
+  };
+
+  const handleVerificationPress = () => {
+    router.push('/verification' as any);
+  };
+
+  const handleSupporterPress = () => {
+    // Open help center which uses GroqAIService
+    router.push('/help-center' as any);
+  };
+
+  const handleMenuPress = () => {
+    router.push('/menu' as any);
+  };
+
+  const handleUploadPress = () => setShowUploadModal(true);
+
+  const handleUploadOptionPress = (option: string) => {
+    setShowUploadModal(false);
+    setSelectedUploadScreen(option);
+  };
+
+  // Image picker handlers for cover photo and profile picture
+  const pickCoverPhoto = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photo library');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setUserData(prev => ({ ...prev, coverPhoto: result.assets[0].uri }));
+      setEditData(prev => ({ ...prev, coverPhoto: result.assets[0].uri }));
+    }
+  };
+
+  const pickProfilePicture = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert('Permission Required', 'Please allow access to your photo library');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setUserData(prev => ({ ...prev, avatar: result.assets[0].uri }));
+    }
+  };
+
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'video':
+        return (
+          <View style={styles.contentContainer}>
+            <Text style={styles.emptyText}>No videos yet</Text>
+          </View>
+        );
+      case 'reels':
+        return (
+          <View style={styles.contentContainer}>
+            <Text style={styles.emptyText}>No reels yet</Text>
+          </View>
+        );
+      case 'photo':
+        return (
+          <View style={styles.contentContainer}>
+            <Text style={styles.emptyText}>No photos yet</Text>
+          </View>
+        );
+      case 'live':
+        return (
+          <View style={styles.contentContainer}>
+            <Text style={styles.emptyText}>No live streams yet</Text>
+          </View>
+        );
+      case 'songs':
+        return (
+          <View style={styles.contentContainer}>
+            <Text style={styles.emptyText}>No songs yet</Text>
+          </View>
+        );
+      case 'save':
+        return (
+          <View style={styles.contentContainer}>
+            <Text style={styles.emptyText}>No saved items yet</Text>
+          </View>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (loading && !userData) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator size="large" color="#000" />
+      </View>
+    );
+  }
+
+  return (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="light-content" backgroundColor="#000000" />
+      {/* Top Header */}
+      <View style={styles.header}>
+        <View style={styles.headerLeft}>
+          <TouchableOpacity style={styles.iconButton} onPress={handleMenuPress}>
+            <Ionicons name="menu" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          <Text style={styles.username}>Your Profile</Text>
+        </View>
+        <View style={styles.headerRight}>
+          <TouchableOpacity style={styles.iconButton} onPress={handleSupporterPress}>
+            <FontAwesome6 name="headset" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={handleVerificationPress}>
+            <FontAwesome6 name="chess-queen" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={handleSettingsPress}>
+            <Ionicons name="settings" size={20} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.iconButton} onPress={handleUploadPress}>
+            <Ionicons name="add-circle" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Cover Photo */}
+        <TouchableOpacity 
+          style={styles.coverPhotoContainer} 
+          onPress={() => isEditing && pickCoverPhoto()} 
+          activeOpacity={isEditing ? 0.9 : 1}
+          disabled={!isEditing}
+        >
+          <Image source={{ uri: userData.coverPhoto }} style={styles.coverPhoto} />
+          {isEditing && (
+            <View style={styles.changeCoverButton}>
+              <Ionicons name="camera" size={20} color="#fff" />
+              <Text style={styles.changeCoverText}>Change Cover</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
+        {/* User Info Section */}
+        <View style={styles.userInfoSection}>
+          <View style={styles.userTextContainer}>
+            {isEditing ? (
+              <>
+                <TextInput
+                  style={styles.displayNameInput}
+                  value={editData.displayName}
+                  onChangeText={(text) => setEditData(prev => ({ ...prev, displayName: text }))}
+                  placeholder="Display Name"
+                  placeholderTextColor="#999"
+                />
+                <TextInput
+                  style={styles.usernameInput}
+                  value={editData.username}
+                  onChangeText={(text) => setEditData(prev => ({ ...prev, username: text }))}
+                  placeholder="@username"
+                  placeholderTextColor="#999"
+                />
+                <TextInput
+                  style={styles.bioInput}
+                  multiline
+                  value={editData.bio}
+                  onChangeText={(text) => setEditData(prev => ({ ...prev, bio: text }))}
+                  placeholder="Write your bio..."
+                  placeholderTextColor="#999"
+                  textAlignVertical="top"
+                />
+              </>
+            ) : (
+              <>
+                <Text style={styles.displayName}>{userData.displayName}</Text>
+                <Text style={styles.usernameText}>@{userData.username}</Text>
+                <Text style={styles.bio}>{userData.bio}</Text>
+              </>
+            )}
+          </View>
+          
+          <View style={styles.profilePictureContainer}>
+            <TouchableOpacity 
+              onPress={() => isEditing && pickProfilePicture()} 
+              activeOpacity={isEditing ? 0.9 : 1}
+              disabled={!isEditing}
+            >
+              <Image source={{ uri: userData.avatar }} style={styles.profilePicture} />
+            </TouchableOpacity>
+            {isEditing && (
+              <TouchableOpacity style={styles.changePhotoButton} onPress={pickProfilePicture}>
+                <Ionicons name="camera" size={16} color="#fff" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Stats Section */}
+        <View style={styles.statsSection}>
+          <Text style={styles.statsText}>{userData.supporters} supporters • {userData.supporting} supporting • {userData.posts} posts</Text>
+        </View>
+
+        {/* Buttons */}
+        <View style={styles.buttonsContainer}>
+          {isEditing ? (
+            <>
+              <TouchableOpacity 
+                style={[styles.button, styles.saveButton]} 
+                onPress={handleSaveProfile}
+                disabled={loading}
+              >
+                <Text style={[styles.buttonText, styles.saveButtonText]}>
+                  {loading ? 'Saving...' : 'Save'}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.button, styles.cancelButton]} 
+                onPress={() => setIsEditing(false)}
+              >
+                <Text style={styles.buttonText}>Cancel</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <TouchableOpacity style={[styles.button, styles.editButton]} onPress={handleEditProfile}>
+                <Text style={styles.buttonText}>Edit Profile</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.button, styles.shareButton]} onPress={handleShareProfile}>
+                <Text style={styles.buttonText}>Share Profile</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        {/* Tabs Section */}
+        <View style={styles.tabsContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {tabs.map((tab) => (
+              <TouchableOpacity
+                key={tab.id}
+                style={[
+                  styles.tab,
+                  activeTab === tab.id && styles.activeTab
+                ]}
+                onPress={() => setActiveTab(tab.id)}
+              >
+                <Text style={[
+                  styles.tabText,
+                  activeTab === tab.id && styles.activeTabText
+                ]}>
+                  {tab.label}
+                </Text>
+                {activeTab === tab.id && <View style={styles.tabIndicator} />}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Tab Content */}
+        {renderTabContent()}
+      </ScrollView>
+
+      {/* Upload Bottom Sheet Modal */}
+      <Modal
+        visible={showUploadModal}
+        transparent={true}
+        animationType="none"
+        onRequestClose={() => setShowUploadModal(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowUploadModal(false)}
+        >
+          <View style={[styles.bottomSheet, { paddingBottom: insets.bottom + 20 }]}>
+            <View style={styles.bottomSheetHandle} />
+            <Text style={styles.bottomSheetTitle}>Create</Text>
+            
+            <View style={styles.uploadOptions}>
+              <TouchableOpacity 
+                style={styles.uploadOption}
+                onPress={() => handleUploadOptionPress('Story')}
+              >
+                <Ionicons name="book" size={24} color="#6A5ACD" />
+                <Text style={styles.uploadOptionText}>Story</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.uploadOption}
+                onPress={() => handleUploadOptionPress('Photo')}
+              >
+                <Ionicons name="image" size={24} color="#6A5ACD" />
+                <Text style={styles.uploadOptionText}>Photo</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.uploadOption}
+                onPress={() => handleUploadOptionPress('Reels')}
+              >
+                <Ionicons name="film" size={24} color="#6A5ACD" />
+                <Text style={styles.uploadOptionText}>Reels</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.uploadOption}
+                onPress={() => handleUploadOptionPress('Video')}
+              >
+                <Ionicons name="videocam" size={24} color="#6A5ACD" />
+                <Text style={styles.uploadOptionText}>Video</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.uploadOption}
+                onPress={() => handleUploadOptionPress('Live')}
+              >
+                <Ionicons name="radio" size={24} color="#6A5ACD" />
+                <Text style={styles.uploadOptionText}>Live</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.uploadOption}
+                onPress={() => handleUploadOptionPress('Song')}
+              >
+                <Ionicons name="musical-notes" size={24} color="#6A5ACD" />
+                <Text style={styles.uploadOptionText}>Song</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Upload Screens Modal */}
+      <Modal
+        visible={!!selectedUploadScreen}
+        animationType="none"
+        onRequestClose={() => setSelectedUploadScreen(null)}
+      >
+        <View style={styles.fullScreenUploadContainer}>
+          {/* Header with Close Button */}
+          <View style={styles.uploadModalHeader}>
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setSelectedUploadScreen(null)}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close" size={28} color="#fff" />
+            </TouchableOpacity>
+            
+            <View style={styles.placeholder} />
+          </View>
+          
+          {/* Upload Screen Content */}
+          <View style={styles.uploadScreenContainer}>
+            {selectedUploadScreen === 'Story' && <StoryUpload onClose={() => setSelectedUploadScreen(null)} />}
+            {selectedUploadScreen === 'Photo' && <PhotoUpload onClose={() => setSelectedUploadScreen(null)} />}
+            {selectedUploadScreen === 'Reels' && <ReelsUpload onClose={() => setSelectedUploadScreen(null)} />}
+            {selectedUploadScreen === 'Video' && <VideoUpload onClose={() => setSelectedUploadScreen(null)} />}
+            {selectedUploadScreen === 'Live' && <LiveUpload onClose={() => setSelectedUploadScreen(null)} />}
+            {selectedUploadScreen === 'Song' && <SongUpload onClose={() => setSelectedUploadScreen(null)} />}
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  loadingContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  username: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+  verifiedIcon: {
+    marginLeft: 4,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  logo: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  iconButton: {
+    padding: 4,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 90,
+  },
+  coverPhotoContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 150,
+  },
+  coverPhoto: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  changeCoverButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(139, 0, 255, 0.8)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  changeCoverText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  userInfoSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 40,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+    marginTop: -30,
+  },
+  userTextContainer: {
+    flex: 1,
+    marginRight: 16,
+  },
+  displayName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  displayNameInput: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: '#8B00FF',
+    paddingBottom: 2,
+  },
+  usernameText: {
+    fontSize: 16,
+    color: '#666666',
+    marginBottom: 16,
+  },
+  usernameInput: {
+    fontSize: 16,
+    color: '#666666',
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#8B00FF',
+    paddingBottom: 2,
+  },
+  bio: {
+    fontSize: 14,
+    color: '#CCCCCC',
+    lineHeight: 20,
+  },
+  bioInput: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    lineHeight: 20,
+    borderWidth: 1,
+    borderColor: '#8B00FF',
+    borderRadius: 8,
+    padding: 8,
+    minHeight: 60,
+    textAlignVertical: 'top',
+    backgroundColor: '#1A1A1A',
+  },
+  profilePictureContainer: {
+    position: 'relative',
+  },
+  profilePicture: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    borderColor: '#000000',
+  },
+  changePhotoButton: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#8B00FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#000000',
+  },
+  statsSection: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+  },
+  statsText: {
+    fontSize: 14,
+    color: '#666666',
+  },
+  buttonsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+  },
+  button: {
+    flex: 1,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editButton: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#8B00FF',
+  },
+  shareButton: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#8B00FF',
+  },
+  saveButton: {
+    backgroundColor: '#8B00FF',
+    borderColor: '#8B00FF',
+  },
+  cancelButton: {
+    backgroundColor: '#1A1A1A',
+    borderColor: '#8B00FF',
+  },
+  buttonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  saveButtonText: {
+    color: '#FFFFFF',
+  },
+  tabsContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+  },
+  tab: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    position: 'relative',
+  },
+  activeTab: {
+    // Active tab styling handled by indicator
+  },
+  tabText: {
+    fontSize: 16,
+    color: '#666666',
+    fontWeight: '500',
+  },
+  activeTabText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  tabIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 20,
+    right: 20,
+    height: 2,
+    backgroundColor: '#8B00FF',
+  },
+  contentContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666666',
+  },
+  // Upload Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  bottomSheet: {
+    backgroundColor: '#1A1A1A',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+  },
+  bottomSheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#666',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  bottomSheetTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  uploadOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 16,
+    paddingBottom: 20,
+  },
+  uploadOption: {
+    width: '30%',
+    alignItems: 'center',
+    paddingVertical: 16,
+    backgroundColor: '#2A2A2A',
+    borderRadius: 12,
+  },
+  uploadOptionText: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    marginTop: 8,
+  },
+  // Full Screen Upload Modal Styles
+  fullScreenUploadContainer: {
+    flex: 1,
+    backgroundColor: '#000000',
+  },
+  uploadModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1A1A1A',
+  },
+  closeButton: {
+    padding: 8,
+  },
+  uploadModalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  placeholder: {
+    width: 44,
+  },
+  uploadScreenContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
